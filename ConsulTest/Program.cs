@@ -10,30 +10,35 @@ using (var consulClient = new ConsulClient())
     while (!exitRequested)
     {
         // Get available instances of the service
-        var queryResult = await consulClient.Catalog.Service(serviceName);
-        var services = queryResult.Response;
-        if (services != null)
+        //var queryResult = await consulClient.Catalog.Service(serviceName);
+        var queryResult = await consulClient.Health.Service(serviceName, tag: null, passingOnly: true);
+        var services = queryResult.Response;       
+        if (services != null && services.Length > 0)
         {
             // Choose one of the available instances
-            CatalogService service;
+            AgentService service;
             if (services.Length > 1)
             {
                 var _random = new Random();
-                service = queryResult.Response[_random.Next(0, services.Length)];
+                service = services[_random.Next(0, services.Length)].Service;
             }
             else
             {
-                service = queryResult.Response.FirstOrDefault()!;
+                service = services.FirstOrDefault()!.Service;
             }
 
             // Call the service using HttpClient
             Console.WriteLine($"------------------------");
-            Console.WriteLine($"Sending request to {service.ServiceAddress}:{service.ServicePort}");
-            var serviceUrl = $"{service.ServiceAddress}:{service.ServicePort}/api/ConsulTest";
+            Console.WriteLine($"Sending request to {service.Address}:{service.Port}");
+            var serviceUrl = $"{service.Address}:{service.Port}/api/ConsulTest";
             using var httpClient = new HttpClient();
             var response = await httpClient.GetStringAsync(serviceUrl);
             Console.WriteLine($"Response from {serviceName}: {response}");
             Console.WriteLine($"------------------------");
+        }
+        else
+        {
+            Console.WriteLine("No healthy services found");
         }
     
         Console.WriteLine("Press Q key to exit or anykey to continue...");

@@ -37,12 +37,20 @@ public class ConsulService : IConsulService
                 }                
             }
 
+            var httpCheck = new AgentServiceCheck()
+            {
+                DeregisterCriticalServiceAfter = TimeSpan.FromMinutes(1),
+                Interval = TimeSpan.FromSeconds(30),
+                HTTP = $"{address}:{port}/healthz"
+            };
+
             var agentReg = new AgentServiceRegistration()
             {
                 Address = address,
                 ID = _serviceId,
                 Name = _serviceName,
-                Port = port
+                Port = port,
+                Check = httpCheck
             };
 
             await _client.Agent.ServiceRegister(agentReg);
